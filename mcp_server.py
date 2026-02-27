@@ -3,11 +3,12 @@ from mcp.server.fastmcp import FastMCP  # Add MCP import
 from notebookllm import Notebook
 
 
-mcp = FastMCP(name="NotebookLLMServer", description="A server to efficiently interact with Jupyter Notebooks by converting them to token-friendly plain text. This process significantly saves costs and improves processing speed when working with LLMs.")
+mcp = FastMCP("NotebookLLMServer")
 
 # Store the loaded notebook in memory.
 loaded_notebook: Notebook | None = None
 loaded_notebook_path: str | None = None
+
 
 @mcp.tool()
 def load_notebook(filepath: str) -> str:
@@ -30,6 +31,7 @@ def load_notebook(filepath: str) -> str:
         loaded_notebook = None
         loaded_notebook_path = None
         return f"Error loading notebook: {str(e)}"
+
 
 @mcp.tool()
 def notebook_to_plain_text(input_filepath: str | None = None) -> str:
@@ -64,6 +66,7 @@ def notebook_to_plain_text(input_filepath: str | None = None) -> str:
     except Exception as e:
         return f"Error converting notebook to plain text: {str(e)}"
 
+
 @mcp.tool()
 def plain_text_to_notebook_file(plain_text_content: str, output_filepath: str) -> str:
     """Converts token-efficient plain text content (with special markers) back to a .ipynb file and saves it. Enables cost-effective round-trip editing with LLMs.
@@ -93,8 +96,11 @@ def plain_text_to_notebook_file(plain_text_content: str, output_filepath: str) -
     except Exception as e:
         return f"Error converting plain text to notebook: {str(e)}"
 
+
 @mcp.tool()
-def add_code_cell_to_loaded_notebook(code_content: str, position: int | None = None) -> str:
+def add_code_cell_to_loaded_notebook(
+    code_content: str, position: int | None = None
+) -> str:
     """Adds a new code cell to the currently loaded notebook. Efficiently modifies the notebook structure in memory.
 
     Args:
@@ -112,8 +118,11 @@ def add_code_cell_to_loaded_notebook(code_content: str, position: int | None = N
     except Exception as e:
         return f"Error adding code cell: {str(e)}"
 
+
 @mcp.tool()
-def add_markdown_cell_to_loaded_notebook(markdown_content: str, position: int | None = None) -> str:
+def add_markdown_cell_to_loaded_notebook(
+    markdown_content: str, position: int | None = None
+) -> str:
     """Adds a new markdown cell to the currently loaded notebook. Efficiently updates the notebook's narrative content.
 
     Args:
@@ -130,6 +139,7 @@ def add_markdown_cell_to_loaded_notebook(markdown_content: str, position: int | 
         return f"Added markdown cell. Loaded notebook now has {len(loaded_notebook.cells)} cells. Modification was efficient."
     except Exception as e:
         return f"Error adding markdown cell: {str(e)}"
+
 
 @mcp.tool()
 def save_loaded_notebook(output_filepath: str | None = None) -> str:
@@ -160,14 +170,18 @@ def save_loaded_notebook(output_filepath: str | None = None) -> str:
             return "Error: No output path specified and the notebook was not loaded from a file. Cannot efficiently save."
 
         loaded_notebook.save(save_path)
-        if output_filepath: # If a new path was provided, update the loaded_notebook_path
+        if (
+            output_filepath
+        ):  # If a new path was provided, update the loaded_notebook_path
             loaded_notebook_path = output_filepath
         return f"Successfully and efficiently saved notebook to: {save_path}"
     except Exception as e:
         return f"Error saving notebook: {str(e)}"
 
+
 def main():
     mcp.run(transport="stdio")
+
 
 if __name__ == "__main__":
     main()
