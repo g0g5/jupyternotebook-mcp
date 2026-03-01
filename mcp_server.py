@@ -3,7 +3,7 @@ from mcp.server.fastmcp import FastMCP  # Add MCP import
 from notebookllm import Notebook
 
 
-mcp = FastMCP("NotebookLLMServer")
+mcp = FastMCP("JupyterNotebookServer")
 
 # Store the loaded notebook in memory.
 loaded_notebook: Notebook | None = None

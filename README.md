@@ -50,20 +50,24 @@ A Model Context Protocol server for working with Jupyter Notebooks (`.ipynb` fil
 
 ### Using uv (recommended)
 
-When using [`uv`](https://docs.astral.sh/uv/), no specific installation is needed. We will use [`uvx`](https://docs.astral.sh/uv/guides/tools/) to directly run `jupyternotebook-mcp`.
+`jupyternotebook-mcp` is not currently published on PyPI.
 
-### Using PIP
-
-Alternatively, you can install `jupyternotebook-mcp` via pip:
+Recommended: install it as a uv tool directly from this GitHub repository:
 
 ```bash
-pip install jupyternotebook-mcp
+uv tool install jupyternotebook-mcp --from git+https://github.com/g0g5/jupyternotebook-mcp@main
 ```
 
-After installation, you can run it as a script using:
+Then run it with [`uvx`](https://docs.astral.sh/uv/guides/tools/):
 
 ```bash
-jupyternotebook-mcp
+uvx jupyternotebook-mcp
+```
+
+If you have not installed it first (or want one-off execution), always pass `--from`:
+
+```bash
+uvx jupyternotebook-mcp --from git+https://github.com/g0g5/jupyternotebook-mcp@main
 ```
 
 ## Configuration
@@ -78,19 +82,7 @@ Add to your Claude settings:
   "mcpServers": {
     "jupyternotebook-mcp": {
       "command": "uvx",
-      "args": ["jupyternotebook-mcp"]
-    }
-  }
-}
-```
-
-**Using pip installation**
-```json
-{
-  "mcpServers": {
-    "jupyternotebook-mcp": {
-      "command": "python",
-      "args": ["-m", "mcp_server"]
+      "args": ["jupyternotebook-mcp", "--from", "git+https://github.com/g0g5/jupyternotebook-mcp@main"]
     }
   }
 }
@@ -105,19 +97,9 @@ Add to your Zed `settings.json`:
 "context_servers": [
   "jupyternotebook-mcp": {
     "command": "uvx",
-    "args": ["jupyternotebook-mcp"]
+    "args": ["jupyternotebook-mcp", "--from", "git+https://github.com/g0g5/jupyternotebook-mcp@main"]
   }
 ],
-```
-
-**Using pip installation**
-```json
-"context_servers": {
-  "jupyternotebook-mcp": {
-    "command": "python",
-    "args": ["-m", "mcp_server"]
-  }
-},
 ```
 
 ### Configure for VS Code
@@ -138,21 +120,7 @@ Optionally, you can add it to a file called `.vscode/mcp.json` in your workspace
     "servers": {
       "jupyternotebook-mcp": {
         "command": "uvx",
-        "args": ["jupyternotebook-mcp"]
-      }
-    }
-  }
-}
-```
-
-**Using pip installation**
-```json
-{
-  "mcp": {
-    "servers": {
-      "jupyternotebook-mcp": {
-        "command": "python",
-        "args": ["-m", "mcp_server"]
+        "args": ["jupyternotebook-mcp", "--from", "git+https://github.com/g0g5/jupyternotebook-mcp@main"]
       }
     }
   }
@@ -216,20 +184,15 @@ Optionally, you can add it to a file called `.vscode/mcp.json` in your workspace
 You can use the MCP inspector to debug the server. For `uvx` installations:
 
 ```bash
-npx @modelcontextprotocol/inspector uvx jupyternotebook-mcp
-```
-
-Or if you've installed the package via pip:
-```bash
-npx @modelcontextprotocol/inspector python -m mcp_server
+npx @modelcontextprotocol/inspector uvx jupyternotebook-mcp --from git+https://github.com/g0g5/jupyternotebook-mcp@main
 ```
 
 ## Build
 
-This package is typically installed via pip or used directly with `uvx`. If you are developing the package, you can build it using standard Python build tools.
+This package is typically installed with `uv tool install` or used directly with `uvx`. If you are developing the package, you can build it with `uv`.
 
 ```bash
-python -m build
+uv build
 ```
 
 ## Contributing
