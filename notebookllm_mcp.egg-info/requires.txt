@@ -1,2 +1,0 @@
-mcp[cli]>=1.8.1
-notebookllm>=1.1.0
