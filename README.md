@@ -1,7 +1,5 @@
 # Jupyter Notebook MCP
-![PyPI](https://img.shields.io/pypi/v/jupyternotebook-mcp?label=pypi%20package)
-![PyPI - Downloads](https://img.shields.io/pypi/dm/jupyternotebook-mcp)
-[![PyPI Downloads](https://static.pepy.tech/personalized-badge/jupyternotebook-mcp?period=total&units=INTERNATIONAL_SYSTEM&left_color=BLACK&right_color=GREEN&left_text=downloads)](https://pepy.tech/projects/jupyternotebook-mcp)
+
 A Model Context Protocol server for working with Jupyter Notebooks (`.ipynb` files) in a way that is efficient for Large Language Models (LLMs). It converts notebooks to a simplified plain text format to reduce token usage and cost, and can convert them back.
 
 ## Available Tools
