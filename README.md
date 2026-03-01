@@ -48,24 +48,24 @@ A Model Context Protocol server for working with Jupyter Notebooks (`.ipynb` fil
 
 ### Using uv (recommended)
 
-`jupyternotebook-mcp` is not currently published on PyPI.
+`ipynb-mcp` is not currently published on PyPI.
 
 Recommended: install it as a uv tool directly from this GitHub repository:
 
 ```bash
-uv tool install jupyternotebook-mcp --from git+https://github.com/g0g5/jupyternotebook-mcp@main
+uv tool install ipynb-mcp --from git+https://github.com/g0g5/jupyternotebook-mcp@main
 ```
 
 Then run it with [`uvx`](https://docs.astral.sh/uv/guides/tools/):
 
 ```bash
-uvx jupyternotebook-mcp
+uvx ipynb-mcp
 ```
 
 If you have not installed it first (or want one-off execution), always pass `--from`:
 
 ```bash
-uvx jupyternotebook-mcp --from git+https://github.com/g0g5/jupyternotebook-mcp@main
+uvx ipynb-mcp --from git+https://github.com/g0g5/jupyternotebook-mcp@main
 ```
 
 ## Configuration
@@ -78,9 +78,9 @@ Add to your Claude settings:
 ```json
 {
   "mcpServers": {
-    "jupyternotebook-mcp": {
+    "ipynb-mcp": {
       "command": "uvx",
-      "args": ["jupyternotebook-mcp", "--from", "git+https://github.com/g0g5/jupyternotebook-mcp@main"]
+      "args": ["ipynb-mcp", "--from", "git+https://github.com/g0g5/jupyternotebook-mcp@main"]
     }
   }
 }
@@ -93,9 +93,9 @@ Add to your Zed `settings.json`:
 **Using uvx**
 ```json
 "context_servers": [
-  "jupyternotebook-mcp": {
+  "ipynb-mcp": {
     "command": "uvx",
-    "args": ["jupyternotebook-mcp", "--from", "git+https://github.com/g0g5/jupyternotebook-mcp@main"]
+    "args": ["ipynb-mcp", "--from", "git+https://github.com/g0g5/jupyternotebook-mcp@main"]
   }
 ],
 ```
@@ -104,7 +104,7 @@ Add to your Zed `settings.json`:
 
 For quick installation, use one of the one-click install buttons below...
 
-[![Install with UV in VS Code](https://img.shields.io/badge/VS_Code-UV-0098FF?style=flat-square&logo=visualstudiocode&logoColor=white)](https://insiders.vscode.dev/redirect/mcp/install?name=jupyternotebook-mcp&config=%7B%22command%22%3A%22uvx%22%2C%22args%22%3A%5B%22jupyternotebook-mcp%22%5D%7D) [![Install with UV in VS Code Insiders](https://img.shields.io/badge/VS_Code_Insiders-UV-24bfa5?style=flat-square&logo=visualstudiocode&logoColor=white)](https://insiders.vscode.dev/redirect/mcp/install?name=jupyternotebook-mcp&config=%7B%22command%22%3A%22uvx%22%2C%22args%22%3A%5B%22jupyternotebook-mcp%22%5D%7D&quality=insiders)
+[![Install with UV in VS Code](https://img.shields.io/badge/VS_Code-UV-0098FF?style=flat-square&logo=visualstudiocode&logoColor=white)](https://insiders.vscode.dev/redirect/mcp/install?name=ipynb-mcp&config=%7B%22command%22%3A%22uvx%22%2C%22args%22%3A%5B%22ipynb-mcp%22%5D%7D) [![Install with UV in VS Code Insiders](https://img.shields.io/badge/VS_Code_Insiders-UV-24bfa5?style=flat-square&logo=visualstudiocode&logoColor=white)](https://insiders.vscode.dev/redirect/mcp/install?name=ipynb-mcp&config=%7B%22command%22%3A%22uvx%22%2C%22args%22%3A%5B%22ipynb-mcp%22%5D%7D&quality=insiders)
 
 For manual installation, add the following JSON block to your User Settings (JSON) file in VS Code. You can do this by pressing `Ctrl + Shift + P` (or `Cmd + Shift + P` on macOS) and typing `Preferences: Open User Settings (JSON)`.
 
@@ -116,9 +116,9 @@ Optionally, you can add it to a file called `.vscode/mcp.json` in your workspace
 {
   "mcp": {
     "servers": {
-      "jupyternotebook-mcp": {
+      "ipynb-mcp": {
         "command": "uvx",
-        "args": ["jupyternotebook-mcp", "--from", "git+https://github.com/g0g5/jupyternotebook-mcp@main"]
+        "args": ["ipynb-mcp", "--from", "git+https://github.com/g0g5/jupyternotebook-mcp@main"]
       }
     }
   }
@@ -182,7 +182,7 @@ Optionally, you can add it to a file called `.vscode/mcp.json` in your workspace
 You can use the MCP inspector to debug the server. For `uvx` installations:
 
 ```bash
-npx @modelcontextprotocol/inspector uvx jupyternotebook-mcp --from git+https://github.com/g0g5/jupyternotebook-mcp@main
+npx @modelcontextprotocol/inspector uvx ipynb-mcp --from git+https://github.com/g0g5/jupyternotebook-mcp@main
 ```
 
 ## Build

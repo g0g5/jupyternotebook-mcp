@@ -1,5 +1,5 @@
 [project]
-name = "jupyternotebook-mcp"
+name = "ipynb-mcp"
 version = "0.4.0"
 description = "Add your description here"
 readme = "README.md"
@@ -10,5 +10,5 @@ dependencies = [
 ]
 
 [project.scripts]
-"jupyternotebook-mcp" = "mcp_server:main"
+"ipynb-mcp" = "mcp_server:main"
 
