@@ -1,7 +1,7 @@
-# NotebookLLM MCP Server
-![PyPI](https://img.shields.io/pypi/v/notebookllm-mcp?label=pypi%20package)
-![PyPI - Downloads](https://img.shields.io/pypi/dm/notebookllm)
-[![PyPI Downloads](https://static.pepy.tech/personalized-badge/notebookllm-mcp?period=total&units=INTERNATIONAL_SYSTEM&left_color=BLACK&right_color=GREEN&left_text=downloads)](https://pepy.tech/projects/notebookllm-mcp)
+# Jupyter Notebook MCP
+![PyPI](https://img.shields.io/pypi/v/jupyternotebook-mcp?label=pypi%20package)
+![PyPI - Downloads](https://img.shields.io/pypi/dm/jupyternotebook-mcp)
+[![PyPI Downloads](https://static.pepy.tech/personalized-badge/jupyternotebook-mcp?period=total&units=INTERNATIONAL_SYSTEM&left_color=BLACK&right_color=GREEN&left_text=downloads)](https://pepy.tech/projects/jupyternotebook-mcp)
 A Model Context Protocol server for working with Jupyter Notebooks (`.ipynb` files) in a way that is efficient for Large Language Models (LLMs). It converts notebooks to a simplified plain text format to reduce token usage and cost, and can convert them back.
 
 ## Available Tools
@@ -19,12 +19,24 @@ A Model Context Protocol server for working with Jupyter Notebooks (`.ipynb` fil
         *   `plain_text_content` (string): Plain text content to convert.
         *   `output_filepath` (string): Absolute path to save the `.ipynb` file (must end with `.ipynb`).
     *   **Returns**: (string) Success or failure message.
-*   **`add_code_cell_to_loaded_notebook`**: Adds a new code cell to the currently loaded notebook.
+*   **`add_cell`**: Adds a new cell to the currently loaded notebook.
+    *   **Arguments**:
+        *   `cell_type` (string): Cell type to add (`"code"` or `"markdown"`, case-insensitive).
+        *   `content` (string): Source content for the new cell.
+        *   `position` (integer, optional): Position to insert the cell (appends if `null`).
+    *   **Returns**: (string) Success or failure message and current cell count.
+*   **`edit_cell`**: Edits an existing cell in the currently loaded notebook.
+    *   **Arguments**:
+        *   `cell_index_or_position` (integer): 0-based position of the target cell.
+        *   `content` (string): New content for the target cell.
+        *   `cell_type` (string, optional): Optional new type (`"code"` or `"markdown"`).
+    *   **Returns**: (string) Success or failure message and current cell count.
+*   **`add_code_cell_to_loaded_notebook`** (deprecated): Backward-compatible wrapper for `add_cell("code", ...)`.
     *   **Arguments**:
         *   `code_content` (string): Source code for the new cell.
         *   `position` (integer, optional): Position to insert the cell (appends if `null`).
     *   **Returns**: (string) Success or failure message and current cell count.
-*   **`add_markdown_cell_to_loaded_notebook`**: Adds a new markdown cell to the currently loaded notebook.
+*   **`add_markdown_cell_to_loaded_notebook`** (deprecated): Backward-compatible wrapper for `add_cell("markdown", ...)`.
     *   **Arguments**:
         *   `markdown_content` (string): Markdown content for the new cell.
         *   `position` (integer, optional): Position to insert the cell (appends if `null`).
@@ -38,20 +50,20 @@ A Model Context Protocol server for working with Jupyter Notebooks (`.ipynb` fil
 
 ### Using uv (recommended)
 
-When using [`uv`](https://docs.astral.sh/uv/), no specific installation is needed. We will use [`uvx`](https://docs.astral.sh/uv/guides/tools/) to directly run `notebookllm_mcp`.
+When using [`uv`](https://docs.astral.sh/uv/), no specific installation is needed. We will use [`uvx`](https://docs.astral.sh/uv/guides/tools/) to directly run `jupyternotebook-mcp`.
 
 ### Using PIP
 
-Alternatively, you can install `notebookllm_mcp` via pip:
+Alternatively, you can install `jupyternotebook-mcp` via pip:
 
 ```bash
-pip install notebookllm-mcp
+pip install jupyternotebook-mcp
 ```
 
 After installation, you can run it as a script using:
 
 ```bash
-python -m notebookllm_mcp
+jupyternotebook-mcp
 ```
 
 ## Configuration
@@ -64,9 +76,9 @@ Add to your Claude settings:
 ```json
 {
   "mcpServers": {
-    "notebookllm": {
+    "jupyternotebook-mcp": {
       "command": "uvx",
-      "args": ["notebookllm_mcp"]
+      "args": ["jupyternotebook-mcp"]
     }
   }
 }
@@ -76,9 +88,9 @@ Add to your Claude settings:
 ```json
 {
   "mcpServers": {
-    "notebookllm": {
+    "jupyternotebook-mcp": {
       "command": "python",
-      "args": ["-m", "notebookllm_mcp"]
+      "args": ["-m", "mcp_server"]
     }
   }
 }
@@ -91,9 +103,9 @@ Add to your Zed `settings.json`:
 **Using uvx**
 ```json
 "context_servers": [
-  "notebookllm": {
+  "jupyternotebook-mcp": {
     "command": "uvx",
-    "args": ["notebookllm_mcp"]
+    "args": ["jupyternotebook-mcp"]
   }
 ],
 ```
@@ -101,9 +113,9 @@ Add to your Zed `settings.json`:
 **Using pip installation**
 ```json
 "context_servers": {
-  "notebookllm": {
+  "jupyternotebook-mcp": {
     "command": "python",
-    "args": ["-m", "notebookllm_mcp"]
+    "args": ["-m", "mcp_server"]
   }
 },
 ```
@@ -112,7 +124,7 @@ Add to your Zed `settings.json`:
 
 For quick installation, use one of the one-click install buttons below...
 
-[![Install with UV in VS Code](https://img.shields.io/badge/VS_Code-UV-0098FF?style=flat-square&logo=visualstudiocode&logoColor=white)](https://insiders.vscode.dev/redirect/mcp/install?name=notebookllm&config=%7B%22command%22%3A%22uvx%22%2C%22args%22%3A%5B%22notebookllm_mcp%22%5D%7D) [![Install with UV in VS Code Insiders](https://img.shields.io/badge/VS_Code_Insiders-UV-24bfa5?style=flat-square&logo=visualstudiocode&logoColor=white)](https://insiders.vscode.dev/redirect/mcp/install?name=notebookllm&config=%7B%22command%22%3A%22uvx%22%2C%22args%22%3A%5B%22notebookllm_mcp%22%5D%7D&quality=insiders)
+[![Install with UV in VS Code](https://img.shields.io/badge/VS_Code-UV-0098FF?style=flat-square&logo=visualstudiocode&logoColor=white)](https://insiders.vscode.dev/redirect/mcp/install?name=jupyternotebook-mcp&config=%7B%22command%22%3A%22uvx%22%2C%22args%22%3A%5B%22jupyternotebook-mcp%22%5D%7D) [![Install with UV in VS Code Insiders](https://img.shields.io/badge/VS_Code_Insiders-UV-24bfa5?style=flat-square&logo=visualstudiocode&logoColor=white)](https://insiders.vscode.dev/redirect/mcp/install?name=jupyternotebook-mcp&config=%7B%22command%22%3A%22uvx%22%2C%22args%22%3A%5B%22jupyternotebook-mcp%22%5D%7D&quality=insiders)
 
 For manual installation, add the following JSON block to your User Settings (JSON) file in VS Code. You can do this by pressing `Ctrl + Shift + P` (or `Cmd + Shift + P` on macOS) and typing `Preferences: Open User Settings (JSON)`.
 
@@ -124,9 +136,9 @@ Optionally, you can add it to a file called `.vscode/mcp.json` in your workspace
 {
   "mcp": {
     "servers": {
-      "notebookllm": {
+      "jupyternotebook-mcp": {
         "command": "uvx",
-        "args": ["notebookllm_mcp"]
+        "args": ["jupyternotebook-mcp"]
       }
     }
   }
@@ -138,9 +150,9 @@ Optionally, you can add it to a file called `.vscode/mcp.json` in your workspace
 {
   "mcp": {
     "servers": {
-      "notebookllm": {
+      "jupyternotebook-mcp": {
         "command": "python",
-        "args": ["-m", "notebookllm_mcp"]
+        "args": ["-m", "mcp_server"]
       }
     }
   }
@@ -204,12 +216,12 @@ Optionally, you can add it to a file called `.vscode/mcp.json` in your workspace
 You can use the MCP inspector to debug the server. For `uvx` installations:
 
 ```bash
-npx @modelcontextprotocol/inspector uvx notebookllm_mcp
+npx @modelcontextprotocol/inspector uvx jupyternotebook-mcp
 ```
 
 Or if you've installed the package via pip:
 ```bash
-npx @modelcontextprotocol/inspector python -m notebookllm_mcp
+npx @modelcontextprotocol/inspector python -m mcp_server
 ```
 
 ## Build

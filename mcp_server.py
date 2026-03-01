@@ -8,6 +8,52 @@ mcp = FastMCP("NotebookLLMServer")
 # Store the loaded notebook in memory.
 loaded_notebook: Notebook | None = None
 loaded_notebook_path: str | None = None
+cell_index: dict[str, list[int]] | None = None
+
+
+def _build_cell_index(notebook: Notebook) -> dict[str, list[int]]:
+    index: dict[str, list[int]] = {"all": [], "code": [], "markdown": []}
+    for position, cell in enumerate(notebook.cells):
+        index["all"].append(position)
+        cell_type = getattr(cell, "cell_type", None)
+        if cell_type == "code":
+            index["code"].append(position)
+        elif cell_type == "markdown":
+            index["markdown"].append(position)
+    return index
+
+
+def _refresh_cell_index() -> None:
+    global cell_index, loaded_notebook
+    if not loaded_notebook:
+        cell_index = None
+        return
+    cell_index = _build_cell_index(loaded_notebook)
+
+
+def _require_loaded_notebook() -> str | None:
+    if not loaded_notebook:
+        return "Error: No notebook is currently loaded. Use load_notebook() first."
+    return None
+
+
+def _normalize_cell_type(cell_type: str) -> str | None:
+    normalized_type = cell_type.strip().lower()
+    if normalized_type not in ("code", "markdown"):
+        return None
+    return normalized_type
+
+
+def _validate_insert_position(position: int | None, total_cells: int) -> str | None:
+    if position is None:
+        return None
+    if isinstance(position, bool) or not isinstance(position, int):
+        return "Error: Invalid position type. Position must be an integer."
+    if position < 0 or position > total_cells:
+        return (
+            f"Error: Invalid position {position}. Allowed range is 0 to {total_cells}."
+        )
+    return None
 
 
 @mcp.tool()
@@ -18,18 +64,26 @@ def load_notebook(filepath: str) -> str:
     Returns:
         str: A message indicating success or failure, including cell count for context.
     """
-    global loaded_notebook, loaded_notebook_path
+    global loaded_notebook, loaded_notebook_path, cell_index
     try:
         if not os.path.exists(filepath):
+            loaded_notebook = None
+            loaded_notebook_path = None
+            cell_index = None
             return f"Error: File not found at {filepath}"
         if not filepath.endswith(".ipynb"):
+            loaded_notebook = None
+            loaded_notebook_path = None
+            cell_index = None
             return "Error: Filepath must be for a .ipynb file."
         loaded_notebook = Notebook(filepath)
         loaded_notebook_path = filepath
+        _refresh_cell_index()
         return f"Successfully loaded notebook: {filepath}. It has {len(loaded_notebook.cells)} cells. Ready for efficient text conversion."
     except Exception as e:
         loaded_notebook = None
         loaded_notebook_path = None
+        cell_index = None
         return f"Error loading notebook: {str(e)}"
 
 
@@ -92,53 +146,144 @@ def plain_text_to_notebook_file(plain_text_content: str, output_filepath: str) -
         # Update the loaded notebook to the one just created and saved
         loaded_notebook = new_notebook
         loaded_notebook_path = output_filepath
+        _refresh_cell_index()
         return f"Successfully converted plain text to notebook and saved to: {output_filepath}. It is now the active notebook, enabling further efficient operations."
     except Exception as e:
         return f"Error converting plain text to notebook: {str(e)}"
 
 
 @mcp.tool()
-def add_code_cell_to_loaded_notebook(
-    code_content: str, position: int | None = None
-) -> str:
-    """Adds a new code cell to the currently loaded notebook. Efficiently modifies the notebook structure in memory.
+def add_cell(cell_type: str, content: str, position: int | None = None) -> str:
+    """Adds a new cell to the currently loaded notebook.
 
     Args:
-        code_content (str): The source code for the new cell.
+        cell_type (str): The cell type to add (code or markdown).
+        content (str): The source content for the new cell.
         position (int, optional): The position at which to insert the cell. Appends if None for quick addition.
     Returns:
         str: A message indicating success or failure and current cell count.
     """
     global loaded_notebook
-    if not loaded_notebook:
-        return "Error: No notebook is currently loaded. Use load_notebook() first for efficient cell manipulation."
+    loaded_error = _require_loaded_notebook()
+    if loaded_error:
+        return loaded_error
+    notebook = loaded_notebook
+    if notebook is None:
+        return "Error: No notebook is currently loaded. Use load_notebook() first."
+
+    normalized_cell_type = _normalize_cell_type(cell_type)
+    if not normalized_cell_type:
+        return f"Error: Invalid cell_type '{cell_type}'. Allowed: code, markdown."
+
+    position_error = _validate_insert_position(position, len(notebook.cells))
+    if position_error:
+        return position_error
+
     try:
-        loaded_notebook.add_code_cell(source=code_content, position=position)
-        return f"Added code cell. Loaded notebook now has {len(loaded_notebook.cells)} cells. Modification was efficient."
+        if normalized_cell_type == "code":
+            if position is None:
+                notebook.add_code_cell(source=content)
+            else:
+                notebook.add_code_cell(source=content, position=position)
+        else:
+            if position is None:
+                notebook.add_markdown_cell(source=content)
+            else:
+                notebook.add_markdown_cell(source=content, position=position)
+        _refresh_cell_index()
+        inserted_position = (
+            position if position is not None else len(notebook.cells) - 1
+        )
+        return (
+            f"Added {normalized_cell_type} cell at position {inserted_position}. "
+            f"Loaded notebook now has {len(notebook.cells)} cells."
+        )
     except Exception as e:
-        return f"Error adding code cell: {str(e)}"
+        return f"Error: Failed to add {normalized_cell_type} cell: {str(e)}"
+
+
+@mcp.tool()
+def edit_cell(
+    cell_index_or_position: int, content: str, cell_type: str | None = None
+) -> str:
+    """Edits an existing cell in the currently loaded notebook.
+
+    Args:
+        cell_index_or_position (int): The 0-based position of the cell to edit.
+        content (str): The new source content for the target cell.
+        cell_type (str, optional): Optional new cell type (code or markdown).
+    Returns:
+        str: A message indicating success or failure and current cell count.
+    """
+    global loaded_notebook
+    loaded_error = _require_loaded_notebook()
+    if loaded_error:
+        return loaded_error
+    notebook = loaded_notebook
+    if notebook is None:
+        return "Error: No notebook is currently loaded. Use load_notebook() first."
+
+    if isinstance(cell_index_or_position, bool) or not isinstance(
+        cell_index_or_position, int
+    ):
+        return "Error: Invalid cell index. It must be an integer."
+
+    total_cells_before = len(notebook.cells)
+    if total_cells_before == 0:
+        return "Error: Cannot edit cell 0 because the notebook has no cells."
+    if cell_index_or_position < 0 or cell_index_or_position >= total_cells_before:
+        return (
+            f"Error: Cell index {cell_index_or_position} is out of range. "
+            f"Allowed range is 0 to {total_cells_before - 1}."
+        )
+
+    requested_cell_type: str | None = None
+    if cell_type is not None:
+        requested_cell_type = _normalize_cell_type(cell_type)
+        if not requested_cell_type:
+            return f"Error: Invalid cell_type '{cell_type}'. Allowed: code, markdown."
+
+    try:
+        if requested_cell_type is None:
+            notebook.edit_cell(index=cell_index_or_position, source=content)
+        else:
+            notebook.edit_cell(
+                index=cell_index_or_position,
+                source=content,
+                cell_type=requested_cell_type,
+            )
+        total_cells_after = len(notebook.cells)
+        if total_cells_before != total_cells_after:
+            return "Error: Cell edit changed notebook cell count unexpectedly."
+
+        _refresh_cell_index()
+        edited_cell_type = getattr(
+            notebook.cells[cell_index_or_position], "cell_type", "unknown"
+        )
+        return (
+            f"Edited {edited_cell_type} cell at position {cell_index_or_position}. "
+            f"Loaded notebook now has {total_cells_after} cells."
+        )
+    except Exception as e:
+        return (
+            f"Error: Failed to edit cell at position {cell_index_or_position}: {str(e)}"
+        )
+
+
+@mcp.tool()
+def add_code_cell_to_loaded_notebook(
+    code_content: str, position: int | None = None
+) -> str:
+    """Deprecated: use add_cell(cell_type='code', content=...) instead."""
+    return add_cell(cell_type="code", content=code_content, position=position)
 
 
 @mcp.tool()
 def add_markdown_cell_to_loaded_notebook(
     markdown_content: str, position: int | None = None
 ) -> str:
-    """Adds a new markdown cell to the currently loaded notebook. Efficiently updates the notebook's narrative content.
-
-    Args:
-        markdown_content (str): The markdown content for the new cell.
-        position (int, optional): The position at which to insert the cell. Appends if None for quick addition.
-    Returns:
-        str: A message indicating success or failure and current cell count.
-    """
-    global loaded_notebook
-    if not loaded_notebook:
-        return "Error: No notebook is currently loaded. Use load_notebook() first for efficient cell manipulation."
-    try:
-        loaded_notebook.add_markdown_cell(source=markdown_content, position=position)
-        return f"Added markdown cell. Loaded notebook now has {len(loaded_notebook.cells)} cells. Modification was efficient."
-    except Exception as e:
-        return f"Error adding markdown cell: {str(e)}"
+    """Deprecated: use add_cell(cell_type='markdown', content=...) instead."""
+    return add_cell(cell_type="markdown", content=markdown_content, position=position)
 
 
 @mcp.tool()
