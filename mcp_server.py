@@ -271,19 +271,49 @@ def edit_cell(
 
 
 @mcp.tool()
-def add_code_cell_to_loaded_notebook(
-    code_content: str, position: int | None = None
-) -> str:
-    """Deprecated: use add_cell(cell_type='code', content=...) instead."""
-    return add_cell(cell_type="code", content=code_content, position=position)
+def remove_cell(cell_index_or_position: int) -> str:
+    """Removes a cell from the currently loaded notebook.
 
+    Args:
+        cell_index_or_position (int): The 0-based position of the cell to remove.
+    Returns:
+        str: A message indicating success or failure and current cell count.
+    """
+    global loaded_notebook
+    loaded_error = _require_loaded_notebook()
+    if loaded_error:
+        return loaded_error
+    notebook = loaded_notebook
+    if notebook is None:
+        return "Error: No notebook is currently loaded. Use load_notebook() first."
 
-@mcp.tool()
-def add_markdown_cell_to_loaded_notebook(
-    markdown_content: str, position: int | None = None
-) -> str:
-    """Deprecated: use add_cell(cell_type='markdown', content=...) instead."""
-    return add_cell(cell_type="markdown", content=markdown_content, position=position)
+    if isinstance(cell_index_or_position, bool) or not isinstance(
+        cell_index_or_position, int
+    ):
+        return "Error: Invalid cell index. It must be an integer."
+
+    total_cells_before = len(notebook.cells)
+    if total_cells_before == 0:
+        return "Error: Cannot remove cell 0 because the notebook has no cells."
+    if cell_index_or_position < 0 or cell_index_or_position >= total_cells_before:
+        return (
+            f"Error: Cell index {cell_index_or_position} is out of range. "
+            f"Allowed range is 0 to {total_cells_before - 1}."
+        )
+
+    try:
+        removed_cell_type = getattr(
+            notebook.cells[cell_index_or_position], "cell_type", "unknown"
+        )
+        del notebook.cells[cell_index_or_position]
+        _refresh_cell_index()
+        total_cells_after = len(notebook.cells)
+        return (
+            f"Removed {removed_cell_type} cell at position {cell_index_or_position}. "
+            f"Loaded notebook now has {total_cells_after} cells."
+        )
+    except Exception as e:
+        return f"Error: Failed to remove cell at position {cell_index_or_position}: {str(e)}"
 
 
 @mcp.tool()
