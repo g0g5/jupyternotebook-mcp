@@ -56,6 +56,13 @@ def _validate_insert_position(position: int | None, total_cells: int) -> str | N
     return None
 
 
+def _get_loaded_notebook_markdown_path() -> str | None:
+    if not loaded_notebook_path:
+        return None
+    notebook_root, _ = os.path.splitext(loaded_notebook_path)
+    return f"{notebook_root}.md"
+
+
 @mcp.tool()
 def load_notebook(filepath: str) -> str:
     """Loads a .ipynb file into memory. Prepares notebook for efficient, cost-effective text-based operations with LLMs.
@@ -88,15 +95,15 @@ def load_notebook(filepath: str) -> str:
 
 
 @mcp.tool()
-def notebook_to_plain_text(input_filepath: str | None = None) -> str:
-    """Converts a .ipynb file to a simplified plain text representation, stripping metadata to save tokens and reduce LLM processing costs and time.
+def read_notebook(input_filepath: str | None = None) -> str:
+    """Reads a notebook as plain-text markdown in the existing notebookllm cell format.
     If input_filepath is provided, it loads and converts that file.
-    Otherwise, it efficiently converts the currently loaded notebook.
+    Otherwise, it returns the plain-text markdown for the currently loaded notebook.
 
     Args:
         input_filepath (str, optional): The absolute path to the .ipynb file for on-the-fly conversion.
     Returns:
-        str: The token-efficient plain text representation of the notebook or an error message.
+        str: The notebook plain-text markdown or an error message.
     """
     global loaded_notebook
     try:
@@ -108,48 +115,70 @@ def notebook_to_plain_text(input_filepath: str | None = None) -> str:
             if not input_filepath.endswith(".ipynb"):
                 return "Error: Input filepath must be for a .ipynb file."
             notebook_to_convert = Notebook(input_filepath)
-            status_prefix = f"Converted notebook from {input_filepath}."
+            status_prefix = f"Read notebook markdown from {input_filepath}."
         elif loaded_notebook:
             notebook_to_convert = loaded_notebook
-            status_prefix = "Converted currently loaded notebook."
+            status_prefix = "Read markdown for the currently loaded notebook."
         else:
-            return "Error: No notebook loaded and no input_filepath provided. Use load_notebook() or provide input_filepath for efficient conversion."
+            return "Error: No notebook loaded and no input_filepath provided. Use load_notebook() or provide input_filepath to read notebook markdown."
 
-        plain_text = notebook_to_convert.to_plain_text()
-        return f"{status_prefix} Plain text (optimized for token and cost savings):\n\n{plain_text}"
+        notebook_markdown = notebook_to_convert.to_plain_text()
+        return f"{status_prefix} Notebook plain-text markdown:\n\n{notebook_markdown}"
     except Exception as e:
-        return f"Error converting notebook to plain text: {str(e)}"
+        return f"Error reading notebook markdown: {str(e)}"
 
 
 @mcp.tool()
-def plain_text_to_notebook_file(plain_text_content: str, output_filepath: str) -> str:
-    """Converts token-efficient plain text content (with special markers) back to a .ipynb file and saves it. Enables cost-effective round-trip editing with LLMs.
+def save_notebook_markdown() -> str:
+    """Saves the currently loaded notebook as a sibling .md file using notebookllm plain-text markdown.
+
+    Returns:
+        str: A message indicating success or failure of the markdown export.
+    """
+    loaded_error = _require_loaded_notebook()
+    if loaded_error:
+        return loaded_error
+
+    notebook = loaded_notebook
+    if notebook is None:
+        return "Error: No notebook is currently loaded. Use load_notebook() first."
+
+    markdown_path = _get_loaded_notebook_markdown_path()
+    if not markdown_path:
+        return "Error: The loaded notebook has no source filepath. Cannot derive a sibling markdown export path."
+
+    try:
+        with open(markdown_path, "w", encoding="utf-8") as markdown_file:
+            markdown_file.write(notebook.to_plain_text())
+        return f"Successfully saved notebook markdown to: {markdown_path}"
+    except Exception as e:
+        return f"Error saving notebook markdown: {str(e)}"
+
+
+@mcp.tool()
+def markdown_to_notebook(markdown_content: str) -> str:
+    """Replaces the currently loaded notebook in memory from notebookllm plain-text markdown.
 
     Args:
-        plain_text_content (str): The plain text content (optimized for LLMs) to convert.
-        output_filepath (str): The absolute path where the .ipynb file should be saved. Must end with '.ipynb'.
+        markdown_content (str): The plain-text markdown content to load into the opened notebook.
     Returns:
-        str: A message indicating success or failure of the save operation.
+        str: A message indicating success or failure and resulting cell count.
     """
-    global loaded_notebook, loaded_notebook_path
+    global loaded_notebook
+    loaded_error = _require_loaded_notebook()
+    if loaded_error:
+        return loaded_error
+
     try:
-        if not output_filepath.endswith(".ipynb"):
-            return "Error: Output filepath must end with .ipynb"
-
-        # Ensure the directory for the output file exists
-        output_dir = os.path.dirname(output_filepath)
-        if output_dir and not os.path.exists(output_dir):
-            os.makedirs(output_dir)
-
-        new_notebook = Notebook.from_plain_text(plain_text_content)
-        new_notebook.save(output_filepath)
-        # Update the loaded notebook to the one just created and saved
-        loaded_notebook = new_notebook
-        loaded_notebook_path = output_filepath
+        loaded_notebook = Notebook.from_plain_text(markdown_content)
         _refresh_cell_index()
-        return f"Successfully converted plain text to notebook and saved to: {output_filepath}. It is now the active notebook, enabling further efficient operations."
+        return (
+            "Successfully replaced the loaded notebook in memory from markdown. "
+            f"Loaded notebook now has {len(loaded_notebook.cells)} cells. "
+            "Use save_loaded_notebook() to persist the updated .ipynb file."
+        )
     except Exception as e:
-        return f"Error converting plain text to notebook: {str(e)}"
+        return f"Error converting markdown to notebook: {str(e)}"
 
 
 @mcp.tool()
@@ -273,6 +302,8 @@ def edit_cell(
 @mcp.tool()
 def remove_cell(cell_index_or_position: int) -> str:
     """Removes a cell from the currently loaded notebook.
+    Cell indices should be treated as stable for the opened notebook until
+    save_loaded_notebook() is called.
 
     Args:
         cell_index_or_position (int): The 0-based position of the cell to remove.
@@ -310,7 +341,9 @@ def remove_cell(cell_index_or_position: int) -> str:
         total_cells_after = len(notebook.cells)
         return (
             f"Removed {removed_cell_type} cell at position {cell_index_or_position}. "
-            f"Loaded notebook now has {total_cells_after} cells."
+            f"Loaded notebook now has {total_cells_after} cells. "
+            "For this opened notebook, treat cell indices as unchanged until "
+            "save_loaded_notebook() is called."
         )
     except Exception as e:
         return f"Error: Failed to remove cell at position {cell_index_or_position}: {str(e)}"

@@ -69,3 +69,7 @@ Thumbs.db
 # Local env files
 .env
 .env.*
+
+.speciter/
+.opencode/commands/
+.opencode/scripts/
